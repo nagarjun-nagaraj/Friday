@@ -1,6 +1,6 @@
 import typer
 from rich import print
-import scanner
+from codepal import scanner
 
 app = typer.Typer()
 
