@@ -16,3 +16,17 @@ def get_files(path: str) -> list[str]:
 
     return files
 
+def read_files(files: list[str]) -> str:
+    """Read contents of files and return as a single context string."""
+    context = ""
+
+    for file_path in files:
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                context = f.read()
+                context += f"\n\n--- File: {file_path} ---\n{context}"
+        except Exception as e:
+            context += f"\n\n--- File:{file_path} --- (could not read: {e}"
+
+    return context
+
