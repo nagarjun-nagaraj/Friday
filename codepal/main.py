@@ -17,8 +17,10 @@ def ask(
         print(f"[yellow]Scanning {path} for context...[/yellow]")
         files = scanner.get_files(path)
         if files:
-            print(f"[yellow]Reading {len(files)} files...[/yellow]")
-            context = scanner.read_files(files)
+            context, included, skipped = scanner.read_files(files)
+            print(f"[yellow]Reading {included} files as context...[/yellow]")
+            if skipped > 0:
+                print(f"[red]Skipped {skipped} files (context limit reached)[/red]")
         else:
             print(f"[red]No code files found in {path}[/red]")
 

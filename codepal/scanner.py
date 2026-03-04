@@ -16,17 +16,29 @@ def get_files(path: str) -> list[str]:
 
     return files
 
-def read_files(files: list[str]) -> str:
-    """Read contents of files and return as a single context string."""
+MAX_CONTEXT_CHARS = 8000
+
+def read_files(files: list[str]) -> tuple[str, int, int]:
+    """Read contents of files up to a character limit."""
     context = ""
+    included = 0
+    skipped = 0
 
     for file_path in files:
         try:
             with open(file_path, "r", encoding="utf-8") as f:
-                context = f.read()
-                context += f"\n\n--- File: {file_path} ---\n{context}"
+                content = f.read()
+                chunk = f"\n\n--- File: {file_path} ---\n{content}"
+
+                if len(context) + len(chunk) > MAX_CONTEXT_CHARS:
+                    skipped += 1
+                    continue
+
+                context += chunk
+                included += 1
+
         except Exception as e:
-            context += f"\n\n--- File:{file_path} --- (could not read: {e}"
+            context += f"\n\n--- File: {file_path} --- (could not read: {e})"
+            skipped += 1
 
-    return context
-
+    return context, included, skipped
