@@ -2,22 +2,33 @@ import json
 import typer
 from pathlib import Path
 from rich import print
-from rich import console as rich_console
+from rich.table import Table
+from rich.console import Console
 from codepal import scanner, ai
 
 app = typer.Typer()
 
 HISTORY_FILE = Path.home() / ".friday_history.json"
 
+AVAILABLE_MODELS = [
+    {"id": "llama-3.3-70b-versatile",  "description": "Default — best all-rounder"},
+    {"id": "llama-3.1-8b-instant",     "description": "Fast and lightweight"},
+    {"id": "qwen-qwq-32b",             "description": "Reasoning — great for code"},
+    {"id": "llama3-8b-8192",           "description": "Stable, widely tested"},
+]
+
+
+DEFAULT_MODEL = ai.DEFAULT_MODEL
+
+
 def load_history() -> list:
-    """Load chat history from disk."""
     if HISTORY_FILE.exists():
         with open(HISTORY_FILE, "r") as f:
             return json.load(f)
     return []
 
+
 def save_history(history: list):
-    """Save chat history to disk."""
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f, indent=2)
 
@@ -25,10 +36,12 @@ def save_history(history: list):
 @app.command()
 def ask(
     question: str,
-    path: str = typer.Option(None, "--path", "-p", help="Path to codebase to scan")
+    path: str = typer.Option(None, "--path", "-p", help="Path to codebase to scan"),
+    model: str = typer.Option(DEFAULT_MODEL, "--model", "-m", help="Groq model to use")
 ):
     """Ask a question about your codebase."""
     print(f"[bold green]You asked:[/bold green] {question}")
+    print(f"[dim]Model: {model}[/dim]")
 
     context = ""
     if path:
@@ -44,10 +57,28 @@ def ask(
 
     history = load_history()
     print(f"[yellow]Thinking...[/yellow]")
-    answer, updated_history = ai.ask_ai(question, context, history)
+    answer, updated_history = ai.ask_ai(question, context, history, model)
     save_history(updated_history)
 
     print(f"\n[bold white]Answer:[/bold white] {answer}")
+
+
+@app.command()
+def models():
+    """List available Groq models."""
+    console = Console()
+    table = Table(title="Available Models", show_header=True, header_style="bold cyan")
+    table.add_column("Model ID", style="green")
+    table.add_column("Description")
+
+    for m in AVAILABLE_MODELS:
+        model_id = m["id"]
+        if model_id == DEFAULT_MODEL:
+            model_id += " [bold yellow](default)[/bold yellow]"
+        table.add_row(model_id, m["description"])
+
+    console.print(table)
+    console.print("\n[dim]Usage: friday ask \"your question\" --model <model-id>[/dim]")
 
 
 @app.command()

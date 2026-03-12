@@ -6,12 +6,13 @@ load_dotenv()
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-def ask_ai(question: str, context: str = "", history: list = None) -> tuple:
+DEFAULT_MODEL = "llama-3.3-70b-versatile"
+
+def ask_ai(question: str, context: str = "", history: list = None, model: str = DEFAULT_MODEL) -> tuple:
     """Send a question to Groq with chat history and return the response + updated history."""
     if history is None:
         history = []
 
-    # Build the user message
     if context:
         user_message = f"""Here is the codebase context:
 {context}
@@ -22,7 +23,6 @@ Answer clearly and concisely."""
     else:
         user_message = question
 
-    # Append new user turn to history
     messages = [
         {"role": "system", "content": "You are Friday, a helpful coding assistant."}
     ] + history + [
@@ -31,12 +31,11 @@ Answer clearly and concisely."""
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=model,
             messages=messages
         )
         reply = response.choices[0].message.content
 
-        # Save clean question to history, not the context-stuffed prompt
         updated_history = history + [
             {"role": "user", "content": question},
             {"role": "assistant", "content": reply}
@@ -50,6 +49,6 @@ Answer clearly and concisely."""
         elif "401" in error or "403" in error:
             return "✗ Invalid API key — check your GROQ_API_KEY in .env", history
         elif "404" in error:
-            return "✗ Model not found — the AI model name may have changed.", history
+            return "✗ Model not found — run 'friday models' to see available options.", history
         else:
             return f"✗ Something went wrong: {error}", history
